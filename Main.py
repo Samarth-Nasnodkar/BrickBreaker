@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import pygame
 import os
 import random
@@ -11,6 +13,8 @@ def mod(x):
 class Game:
     def __init__(self):
         pygame.init()
+        pygame.font.init()
+        self.font = pygame.font.SysFont('Comic Sans MS', 30)
         pygame.display.set_caption('Brick Breaker')
         self.width = 720
         self.height = 720
@@ -29,6 +33,8 @@ class Game:
         self.screen = pygame.display.set_mode((self.width, self.height))
         self.screen.blit(self.playerSprite, self.playerPosition.toTuple)
         self.screen.blit(self.ballSprite, self.ballPosition.toTuple)
+        self.loadText(text='Press SPACE to start', coords=(
+            self.width/3 - 10, self.height/2))
         self.brickWidth = 0
         self.brickHeight = 0
         self.running = True
@@ -86,6 +92,9 @@ class Game:
             else:
                 self.screen.blit(brick['brokenSprite'], brick['position'])
 
+        if not self.ballLaunched:
+            self.loadText(text='Press SPACE to start',
+                          coords=(self.width/3 - 10, self.height/2))
         self.screen.blit(self.playerSprite, self.playerPosition.toTuple)
         self.screen.blit(self.ballSprite, self.ballPosition.toTuple)
         pygame.display.update()
@@ -99,6 +108,12 @@ class Game:
         self.running = True
         self.generateBricks()
         self.refresh()
+
+    def loadText(self, text: str, coords: tuple = None):
+        if coords is None:
+            coords = (self.width/2, self.height/2)
+        Text = self.font.render(text, False, (255, 255, 255))
+        self.screen.blit(Text, coords)
 
     def eventLoop(self):
         keep_updating = False
@@ -141,8 +156,12 @@ class Game:
                         self.ballVelocity.x = self.width / \
                             60 if self.ballVelocity.x > 0 else -1 * self.width/60
                     self.ballPosition += self.ballVelocity
-                    if self.ballPosition.x >= self.width - 30 or self.ballPosition.x <= 30:
+                    if self.ballPosition.x >= self.width - 30 or self.ballPosition.x <= 0:
                         self.ballVelocity.x *= -1
+                        if self.ballPosition.x >= self.width - 30:
+                            self.ballPosition.x = self.width - 30
+                        else:
+                            self.ballPosition.x = 0
                     if self.height >= self.ballPosition.y >= self.height - 60 and self.playerPosition.x <= self.ballPosition.x + 15 <= self.playerPosition.x + 114:
                         self.ballVelocity.y *= -1
                         self.ballVelocity.x += update_vel.x
