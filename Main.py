@@ -18,7 +18,10 @@ class Game:
         pygame.display.set_caption('Brick Breaker')
         self.icon = pygame.image.load('sprites/Icons/Icon.png')
         self.icon = pygame.transform.scale(self.icon, (32, 32))
+        self.heart = pygame.image.load('sprites/Icons/Heart.png')
+        self.heart = pygame.transform.scale(self.heart, (30, 30))
         pygame.display.set_icon(self.icon)
+        self.lives = 3
         self.width = 720
         self.height = 720
         self.fps = 60
@@ -42,6 +45,7 @@ class Game:
         self.brickHeight = 0
         self.running = True
         self.bricks = []
+        self.displayLives()
         self.generateBricks()
         while True:
             self.eventLoop()
@@ -61,7 +65,7 @@ class Game:
             brickSprite, (self.brickWidth, self.brickHeight))
         brokenSprite = pygame.transform.scale(
             brokenSprite, (self.brickWidth, self.brickHeight))
-        current_width, current_height = 0, 0
+        current_width, current_height = 0, 40
         for i in range(3):
             current_width = 0
             for j in range(bricksPerLine):
@@ -69,7 +73,6 @@ class Game:
                 brick = {
                     'position': (current_width, current_height),
                     'sprite': brickSprite,
-                    'spriteName': currentSprite,
                     'broken': False,
                     'brokenSprite': brokenSprite
                 }
@@ -87,8 +90,15 @@ class Game:
             current_height += self.brickHeight
         pygame.display.update()
 
+    def displayLives(self):
+        curr_width = 0
+        for i in range(self.lives):
+            self.screen.blit(self.heart, (curr_width, 5))
+            curr_width += 35
+
     def refresh(self):
         self.screen.fill((0, 0, 0))
+        self.displayLives()
         for brick in self.bricks:
             if not brick['broken']:
                 self.screen.blit(brick['sprite'], brick['position'])
@@ -109,7 +119,16 @@ class Game:
         self.ballLaunched = False
         self.ballVelocity = Vector2D(0, -1*self.height/60)
         self.running = True
+        self.lives = 3
         self.generateBricks()
+        self.refresh()
+
+    def newLife(self):
+        self.playerPosition = Vector2D(self.width/2 - 57, self.height - 30)
+        self.ballPosition = self.playerPosition + Vector2D(42, -30)
+        self.ballLaunched = False
+        self.ballVelocity = Vector2D(0, -1*self.height/60)
+        self.running = True
         self.refresh()
 
     def loadText(self, text: str, coords: tuple = None):
@@ -168,7 +187,7 @@ class Game:
                     if self.height >= self.ballPosition.y >= self.height - 60 and self.playerPosition.x <= self.ballPosition.x + 15 <= self.playerPosition.x + 114:
                         self.ballVelocity.y *= -1
                         self.ballVelocity.x += update_vel.x
-                    if self.ballPosition.y <= 0:
+                    if self.ballPosition.y <= 40:
                         self.ballVelocity.y *= -1
                     else:
                         for i in range(len(self.bricks)):
@@ -185,7 +204,12 @@ class Game:
                 self.refresh()
 
             if self.ballPosition.y >= self.height - 15:
-                self.running = False
+                if self.lives > 0:
+                    self.lives -= 1
+                    update_vel = Vector2D(0, 0)
+                    self.newLife()
+                else:
+                    self.running = False
             self.clock.tick(self.fps)
 
 
