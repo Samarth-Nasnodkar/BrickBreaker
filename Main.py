@@ -16,6 +16,9 @@ class Game:
         pygame.font.init()
         self.font = pygame.font.SysFont('Comic Sans MS', 30)
         pygame.display.set_caption('Brick Breaker')
+        self.icon = pygame.image.load('sprites/Icons/Icon.png')
+        self.icon = pygame.transform.scale(self.icon, (32, 32))
+        pygame.display.set_icon(self.icon)
         self.width = 720
         self.height = 720
         self.fps = 60
