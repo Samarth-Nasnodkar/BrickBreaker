@@ -22,6 +22,7 @@ class Game:
         self.heart = pygame.transform.scale(self.heart, (30, 30))
         pygame.display.set_icon(self.icon)
         self.lives = 3
+        self.devMode = False
         self.width = 720
         self.height = 720
         self.fps = 60
@@ -44,11 +45,23 @@ class Game:
         self.brickWidth = 0
         self.brickHeight = 0
         self.running = True
+        self.won = False
         self.bricks = []
         self.displayLives()
         self.generateBricks()
         while True:
             self.eventLoop()
+            if self.won:
+                keepRunning = True
+                while keepRunning:
+                    for event in pygame.event.get():
+                        if event.type == pygame.QUIT:
+                            pygame.quit()
+                        elif event.type == pygame.KEYDOWN:
+                            if event.key == pygame.K_SPACE:
+                                self.won = False
+                                keepRunning = False
+                                break
             self.startNewSession()
 
     def generateBricks(self):
@@ -108,6 +121,15 @@ class Game:
         if not self.ballLaunched:
             self.loadText(text='Press SPACE to start',
                           coords=(self.width/3 - 10, self.height/2))
+
+        if len(self.bricks) == 0:
+            self.loadText(text='You Won!',
+                          coords=(self.width/3 + 40, self.height/2 - 20))
+            self.loadText('Press SPACE to start new game',
+                          coords=(self.width/4 - 30, self.height/2 + 30))
+            self.running = False
+            self.won = True
+
         self.screen.blit(self.playerSprite, self.playerPosition.toTuple)
         self.screen.blit(self.ballSprite, self.ballPosition.toTuple)
         pygame.display.update()
@@ -205,7 +227,7 @@ class Game:
 
             if self.ballPosition.y >= self.height - 15:
                 if self.lives > 0:
-                    self.lives -= 1
+                    self.lives -= not self.devMode
                     update_vel = Vector2D(0, 0)
                     self.newLife()
                 else:
