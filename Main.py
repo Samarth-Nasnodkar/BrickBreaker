@@ -23,6 +23,10 @@ class Game:
         pygame.display.set_icon(self.icon)
         self.lives = 3
         self.devMode = False
+        if self.devMode:
+            self.arrow = pygame.image.load('sprites/Icons/Arrow.png')
+            Aspr = self.arrow.get_width() / self.arrow.get_height()
+            self.arrow = pygame.transform.scale(self.arrow, (int(Aspr*30), 30))
         self.width = 720
         self.height = 720
         self.fps = 60
@@ -47,6 +51,7 @@ class Game:
         self.running = True
         self.won = False
         self.bricks = []
+        self.boosts = []
         self.displayLives()
         self.generateBricks()
         while True:
@@ -132,6 +137,11 @@ class Game:
 
         self.screen.blit(self.playerSprite, self.playerPosition.toTuple)
         self.screen.blit(self.ballSprite, self.ballPosition.toTuple)
+        if self.devMode:
+            arr = pygame.transform.rotate(
+                self.arrow, self.ballVelocity.angle)
+            self.screen.blit(
+                arr, (self.ballPosition.x, self.ballPosition.y))
         pygame.display.update()
 
     def startNewSession(self):
@@ -167,7 +177,6 @@ class Game:
                 if event.type == pygame.QUIT:
                     pygame.quit()
                     return
-
                 elif event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_d or event.key == pygame.K_RIGHT:
                         update_vel = self.playerVelocity
@@ -181,8 +190,10 @@ class Game:
                             self.ballLaunched = True
                 elif event.type == pygame.KEYUP:
                     if event.key == pygame.K_d or event.key == pygame.K_RIGHT:
+                        update_vel = Vector2D(0, 0)
                         keep_updating = False
                     elif event.key == pygame.K_a or event.key == pygame.K_LEFT:
+                        update_vel = Vector2D(0, 0)
                         keep_updating = False
 
             if keep_updating or self.ballLaunched:
