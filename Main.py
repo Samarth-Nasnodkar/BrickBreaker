@@ -10,11 +10,24 @@ def mod(x):
     return x if x >= 0 else -1 * x
 
 
+def getRandomBoost():
+    chancesOfCoin = 6
+    chancesOfLife = 1
+    randIndex = random.randint(1, 10)
+    if randIndex <= chancesOfCoin:
+        return 'coin'
+    elif randIndex <= chancesOfCoin + chancesOfLife:
+        return 'life'
+    else:
+        return 'none'
+
+
 class Game:
     def __init__(self):
         pygame.init()
         pygame.font.init()
         self.font = pygame.font.SysFont('Comic Sans MS', 30)
+        self.scoreFont = pygame.font.SysFont('Comic Sans MS', 20)
         pygame.display.set_caption('Brick Breaker')
         self.icon = pygame.image.load('sprites/Icons/Icon.png')
         self.icon = pygame.transform.scale(self.icon, (32, 32))
@@ -25,8 +38,8 @@ class Game:
         self.devMode = False
         if self.devMode:
             self.arrow = pygame.image.load('sprites/Icons/Arrow.png')
-            Aspr = self.arrow.get_width() / self.arrow.get_height()
-            self.arrow = pygame.transform.scale(self.arrow, (int(Aspr*30), 30))
+            aspectRatio = self.arrow.get_width() / self.arrow.get_height()
+            self.arrow = pygame.transform.scale(self.arrow, (int(aspectRatio * 30), 30))
         self.width = 720
         self.height = 720
         self.fps = 60
@@ -36,23 +49,26 @@ class Game:
         self.playerSprite = pygame.image.load('sprites/Player/main_player.png')
         self.playerSprite = pygame.transform.scale(
             self.playerSprite, (114, 30))
-        self.playerPosition = Vector2D(self.width/2 - 57, self.height - 30)
+        self.playerPosition = Vector2D(self.width / 2 - 57, self.height - 30)
         self.ballPosition = self.playerPosition + Vector2D(42, -30)
         self.ballLaunched = False
-        self.ballVelocity = Vector2D(0, -1*self.height/60)
-        self.playerVelocity = Vector2D(self.width/60, 0)
+        self.ballVelocity = Vector2D(0, -1 * self.height / 60)
+        self.playerVelocity = Vector2D(self.width / 60, 0)
         self.screen = pygame.display.set_mode((self.width, self.height))
         self.screen.blit(self.playerSprite, self.playerPosition.toTuple)
         self.screen.blit(self.ballSprite, self.ballPosition.toTuple)
-        self.loadText(text='Press SPACE to start', coords=(
-            self.width/3 - 10, self.height/2))
+        self.loadText(text='Press SPACE to start', coordinates=(
+            self.width / 3 - 10, self.height / 2))
         self.brickWidth = 0
         self.brickHeight = 0
         self.running = True
         self.won = False
         self.bricks = []
-        self.boosts = []
+        self.boosts = ['coin', 'life']
+        self.drops = []
+        self.score = 0
         self.displayLives()
+        self.displayScore()
         self.generateBricks()
         while True:
             self.eventLoop()
@@ -68,6 +84,23 @@ class Game:
                                 keepRunning = False
                                 break
             self.startNewSession()
+
+    def spawnNewDrop(self, brick: dict):
+        if brick['boost'] == 'none':
+            return
+
+        dropVelocity = Vector2D(0, self.height / 120)
+        drop = brick['boost']
+        sprite = pygame.image.load(f'sprites/Drops/{drop}.png')
+        sprite = pygame.transform.scale(sprite, (30, 30))
+        dropPos = (brick['position'][0] + self.brickWidth/2, brick['position'][1] + self.brickHeight/2)
+        dropInstance = {
+            'type': drop,
+            'velocity': dropVelocity,
+            'position': dropPos,
+            'sprite': sprite
+        }
+        self.drops.append(dropInstance)
 
     def generateBricks(self):
         sprites = os.listdir('sprites/Bricks/Mint')
@@ -92,7 +125,8 @@ class Game:
                     'position': (current_width, current_height),
                     'sprite': brickSprite,
                     'broken': False,
-                    'brokenSprite': brokenSprite
+                    'brokenSprite': brokenSprite,
+                    'boost': getRandomBoost()
                 }
                 self.bricks.append(brick)
                 current_width += self.brickWidth
@@ -114,9 +148,14 @@ class Game:
             self.screen.blit(self.heart, (curr_width, 5))
             curr_width += 35
 
+    def displayScore(self):
+        text = self.scoreFont.render(f"Score: {self.score}", True, (255, 255, 255))
+        self.screen.blit(text, (self.width - 130, 2))
+
     def refresh(self):
         self.screen.fill((0, 0, 0))
         self.displayLives()
+        self.displayScore()
         for brick in self.bricks:
             if not brick['broken']:
                 self.screen.blit(brick['sprite'], brick['position'])
@@ -125,15 +164,19 @@ class Game:
 
         if not self.ballLaunched:
             self.loadText(text='Press SPACE to start',
-                          coords=(self.width/3 - 10, self.height/2))
+                          coordinates=(self.width / 3 - 10, self.height / 2))
 
         if len(self.bricks) == 0:
             self.loadText(text='You Won!',
-                          coords=(self.width/3 + 40, self.height/2 - 20))
+                          coordinates=(self.width / 3 + 40, self.height / 2 - 20))
             self.loadText('Press SPACE to start new game',
-                          coords=(self.width/4 - 30, self.height/2 + 30))
+                          coordinates=(self.width / 4 - 30, self.height / 2 + 30))
             self.running = False
             self.won = True
+
+        if len(self.drops) > 0:
+            for drop in self.drops:
+                self.screen.blit(drop['sprite'], drop['position'])
 
         self.screen.blit(self.playerSprite, self.playerPosition.toTuple)
         self.screen.blit(self.ballSprite, self.ballPosition.toTuple)
@@ -146,28 +189,30 @@ class Game:
 
     def startNewSession(self):
         self.bricks = []
-        self.playerPosition = Vector2D(self.width/2 - 57, self.height - 30)
+        self.playerPosition = Vector2D(self.width / 2 - 57, self.height - 30)
         self.ballPosition = self.playerPosition + Vector2D(42, -30)
         self.ballLaunched = False
-        self.ballVelocity = Vector2D(0, -1*self.height/60)
+        self.ballVelocity = Vector2D(0, -1 * self.height / 60)
         self.running = True
         self.lives = 3
+        self.score = 0
+        self.drops = []
         self.generateBricks()
         self.refresh()
 
     def newLife(self):
-        self.playerPosition = Vector2D(self.width/2 - 57, self.height - 30)
+        self.playerPosition = Vector2D(self.width / 2 - 57, self.height - 30)
         self.ballPosition = self.playerPosition + Vector2D(42, -30)
         self.ballLaunched = False
-        self.ballVelocity = Vector2D(0, -1*self.height/60)
+        self.ballVelocity = Vector2D(0, -1 * self.height / 60)
         self.running = True
         self.refresh()
 
-    def loadText(self, text: str, coords: tuple = None):
-        if coords is None:
-            coords = (self.width/2, self.height/2)
+    def loadText(self, text: str, coordinates: tuple = None):
+        if coordinates is None:
+            coordinates = (self.width / 2, self.height / 2)
         Text = self.font.render(text, False, (255, 255, 255))
-        self.screen.blit(Text, coords)
+        self.screen.blit(Text, coordinates)
 
     def eventLoop(self):
         keep_updating = False
@@ -207,9 +252,9 @@ class Game:
                     self.ballPosition = Vector2D(
                         self.playerPosition.x + 42, self.playerPosition.y - 30)
                 else:
-                    if mod(self.ballVelocity.x) >= self.width/60:
+                    if mod(self.ballVelocity.x) >= self.width / 60:
                         self.ballVelocity.x = self.width / \
-                            60 if self.ballVelocity.x > 0 else -1 * self.width/60
+                                              60 if self.ballVelocity.x > 0 else -1 * self.width / 60
                     self.ballPosition += self.ballVelocity
                     if self.ballPosition.x >= self.width - 30 or self.ballPosition.x <= 0:
                         self.ballVelocity.x *= -1
@@ -217,7 +262,8 @@ class Game:
                             self.ballPosition.x = self.width - 30
                         else:
                             self.ballPosition.x = 0
-                    if self.height >= self.ballPosition.y >= self.height - 60 and self.playerPosition.x <= self.ballPosition.x + 15 <= self.playerPosition.x + 114:
+                    if self.height >= self.ballPosition.y >= self.height - 60 and \
+                            self.playerPosition.x <= self.ballPosition.x + 15 <= self.playerPosition.x + 114:
                         self.ballVelocity.y *= -1
                         self.ballVelocity.x += update_vel.x
                     if self.ballPosition.y <= 40:
@@ -225,14 +271,39 @@ class Game:
                     else:
                         for i in range(len(self.bricks)):
                             brickPos = self.bricks[i]['position']
-                            if brickPos[0] <= self.ballPosition.x + 15 <= brickPos[0] + self.brickWidth and self.ballPosition.y <= brickPos[1] + self.brickHeight:
+                            if brickPos[0] <= self.ballPosition.x + 15 <= brickPos[0] + self.brickWidth and brickPos[
+                                1] <= self.ballPosition.y <= brickPos[1] + self.brickHeight:
                                 self.ballVelocity.y *= -1
                                 if self.bricks[i]['broken']:
+                                    self.spawnNewDrop(self.bricks[i])
                                     self.bricks.pop(i)
                                 else:
                                     self.bricks[i]['broken'] = True
 
                                 break
+                if len(self.drops) > 0 and self.ballLaunched:
+                    for drop in self.drops:
+                        drop['position'] = (drop['position'][0] + drop['velocity'].x,
+                                            drop['position'][1] + drop['velocity'].y)
+
+                    for i in range(len(self.drops)):
+                        drop = self.drops[i]
+                        if self.playerPosition.x <= drop['position'][0] <= self.playerPosition.x + 114 and self.playerPosition.y <= drop['position'][1] <= self.playerPosition.y + 30:
+                            if drop['type'] == 'life':
+                                self.lives += 1
+                            elif drop['type'] == 'coin':
+                                self.score += 30
+                            else:
+                                pass
+
+                            self.drops.pop(i)
+                            break
+
+                    for i in range(len(self.drops)):
+                        drop = self.drops[i]
+                        if drop['position'][1] >= self.height:
+                            self.drops.pop(i)
+                            break
 
                 self.refresh()
 
