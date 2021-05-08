@@ -271,8 +271,8 @@ class Game:
                     else:
                         for i in range(len(self.bricks)):
                             brickPos = self.bricks[i]['position']
-                            if brickPos[0] <= self.ballPosition.x + 15 <= brickPos[0] + self.brickWidth and brickPos[
-                                1] <= self.ballPosition.y <= brickPos[1] + self.brickHeight:
+                            if brickPos[0] <= self.ballPosition.x + 15 <= brickPos[0] + self.brickWidth and \
+                                    brickPos[1] <= self.ballPosition.y <= brickPos[1] + self.brickHeight:
                                 self.ballVelocity.y *= -1
                                 if self.bricks[i]['broken']:
                                     self.spawnNewDrop(self.bricks[i])
@@ -288,9 +288,10 @@ class Game:
 
                     for i in range(len(self.drops)):
                         drop = self.drops[i]
-                        if self.playerPosition.x <= drop['position'][0] <= self.playerPosition.x + 114 and self.playerPosition.y <= drop['position'][1] <= self.playerPosition.y + 30:
+                        if self.playerPosition.x <= drop['position'][0] <= self.playerPosition.x + 114 and \
+                                self.playerPosition.y <= drop['position'][1] <= self.playerPosition.y + 30:
                             if drop['type'] == 'life':
-                                self.lives += 1
+                                self.lives += 1 if self.lives < 16 else 0
                             elif drop['type'] == 'coin':
                                 self.score += 30
                             else:
@@ -314,6 +315,9 @@ class Game:
                     self.newLife()
                 else:
                     self.running = False
+
+            if self.lives > 16:
+                self.lives = 16
             self.clock.tick(self.fps)
 
 
